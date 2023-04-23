@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 1</title>
+</head>
+
+<body style="justify-content: center; display: flex; flex-direction: column; align-items: center;">
+    <h1>Lab 1</h1>
+    <h2>Question 1</h2>
+    <!-- Create bar charts using d3 using the data given in yearwise.csv -->
+    <div>
+        <input type="range" min="1" max="3" value="1" class="slider" id="mySlider">
+        <p>2011</p>
+        <p style="display: none;">2012</p>
+        <p style="display: none;">2013</p>
+    </div>
+
+    <div id="chart-container">
+        <div id="chart1" class="chart active">
+            <svg width="600" height="600">
+            </svg>
+        </div>
+        <div id="chart2" class="chart" style="display: none;">
+            <svg width="600" height="600">
+            </svg>
+        </div>
+        <div id="chart3" class="chart" style="display: none;">
+            <svg width="600" height="600">
+            </svg>
+        </div>
+    </div>
+
+    <script>
+        const width = 500;
+        const height = 500;
+
+        const slider = document.getElementById("mySlider");
+        const charts = document.querySelectorAll(".chart");
+        var positions = document.querySelectorAll("p");
+
+        let selected_chart = 1;
+
+        slider.addEventListener("input", () => {
+            const value = parseInt(slider.value);
+
+            // hide all charts and remove active class
+            charts.forEach(chart => {
+                chart.classList.remove("active");
+                chart.style.display = "none";
+            });
+
+            // show selected chart and add active class
+            charts[value - 1].classList.add("active");
+            charts[value - 1].style.display = "block";
+
+            // change selected chart
+            selected_chart = value;
+
+            var position = parseInt(slider.value) - 1;
+            for (var i = 0; i < positions.length; i++) {
+                if (i === position) {
+                    positions[i].style.display = "block";
+                } else {
+                    positions[i].style.display = "none";
+                }
+            }
+        });
+
+        const create_x_axis = (svg, x_labels) => {
+            const xScale = d3.scaleBand()
+                .domain(x_labels)
+                .range([0, svg.attr("width") - 50])
+                .padding(0.1);
+
+            // Define the x axis
+            var xAxis = d3.axisBottom(xScale)
+
+
+            // Append the x axis to the svg element
+            svg.append("g")
+                .attr("class", "x-axis")// assuming you have defined the height variable
+                .attr("transform", "translate(50, " + (height - 50) + ")")
+                .call(xAxis)
+
+            // Add x-axis label
+            svg.append("text")
+                .attr("x", width / 2)
+                .attr("y", height)
+                .attr("text-anchor", "middle")
+                .text("Name");
+
+        }
+
+        const create_y_axis = (svg, y_values) => {
+            var yScale = d3.scaleLinear()
+                .domain([0, d3.max(y_values)])
+                .range([height - 100, 0]); // assuming you have defined the height variable
+
+            // Define the y axis
+            var yAxis = d3.axisLeft(yScale)
+                .tickPadding(10)
+
+            // Append the y axis to the svg element
+            svg.append("g")
+                .attr("class", "y-axis")// assuming you have defined the height variable
+                .attr("transform", "translate(50, 50)")
+                .call(yAxis)
+
+            // Add y-axis label
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -height / 2)
+                .attr("y", 10)
+                .attr("text-anchor", "middle")
+                .text("X Value");
+        }
+
+        const create_bar_chart = (svg, x_labels, y_values) => {
+            const xScale = d3.scaleBand()
+                .domain(x_labels)
+                .range([0, svg.attr("width") - 50])
+                .padding(0.1);
+
+            var yScale = d3.scaleLinear()
+                .domain([0, d3.max(y_values)])
+                .range([height - 100, 0]); // assuming you have defined the height variable
+
+            const barWidth = xScale.bandwidth() - 20;
+
+            for (let i = 0; i < y_values.length; i++) {
+                const y_value = y_values[i];
+                const xValue = x_labels[i];
+                const bar = svg.append("rect")
+                    .attr("x", xScale(x_labels[i]) + barWidth / 2)
+                    .attr("y", yScale(y_value) + 50)
+                    .attr("width", barWidth)
+                    .attr("height", height - 100 - yScale(y_value))
+                    .attr("transform", "translate(50,0)")
+                    .attr("fill", "steelblue")
+                    .on("mouseover", function () {
+                        d3.select(this)
+                            .attr("fill", "blue");
+
+                        svg.append("text")
+                            .attr("class", "tooltip")
+                            .attr("x", xScale(xValue) + barWidth / 2 + 5)
+                            .attr("y", yScale(y_value) + 40)
+                            .text(`Name: ${xValue}, X Value: ${y_value}`);
+                    })
+                    .on("mouseout", function () {
+                        d3.select(this)
+                            .attr("fill", "steelblue");
+
+                        svg.select(".tooltip")
+                            .remove();
+                    });
+            }
+        }
+
+        const create_graph = (svg, x_labels, y_values) => {
+
+            create_x_axis(svg, x_labels);
+            create_y_axis(svg, y_values);
+
+            // Create the bars
+            console.log(y_values);
+            create_bar_chart(svg, x_labels, y_values);
+        }
+
+        // Load the data from yearwise.csv
+        d3.csv("yearwise.csv").then(function (data) {
+            console.log(data);
+            x_labels = data.map(function (d) {
+                return d.Name;
+            });
+            console.log(x_labels);
+
+
+            y_values_1 = data.map(function (d) {
+                return d.X2011;
+            });
+
+            y_values_2 = data.map(function (d) {
+                return d.X2012;
+            });
+
+            y_values_3 = data.map(function (d) {
+                return d.X2013;
+            });
+
+            svg = d3.select("#chart1").select("svg");
+            create_graph(svg, x_labels, y_values_1);
+
+            svg = d3.select("#chart2").select("svg");
+            create_graph(svg, x_labels, y_values_2);
+
+            svg = d3.select("#chart3").select("svg");
+            create_graph(svg, x_labels, y_values_3);
+        });
+    </script>
+</body>
+
+</html>

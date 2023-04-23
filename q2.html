@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <title>Lab 1</title>
+</head>
+<<body style="justify-content: center; display: flex; flex-direction: column; align-items: center;">
+    <h1>Lab 1</h1>
+    <h2>Question 2</h2>
+    <!-- Create bar charts using d3 using the data given in yearwise.csv -->
+    <div>
+        <input type="range" min="1" max="3" value="1" class="slider" id="mySlider">
+        <p>2011</p>
+        <p style="display: none;">2012</p>
+        <p style="display: none;">2013</p>
+    </div>
+
+    <div id="chart-container">
+        <div id="chart1" class="chart active">
+            <svg width="600" height="600">
+            </svg>
+        </div>
+        <div id="chart2" class="chart" style="display: none;">
+            <svg width="600" height="600">
+            </svg>
+        </div>
+        <div id="chart3" class="chart" style="display: none;">
+            <svg width="600" height="600">
+            </svg>
+        </div>
+    </div>
+    <script>
+        const width = 500;
+        const height = 500;
+
+        const slider = document.getElementById("mySlider");
+        const charts = document.querySelectorAll(".chart");
+        var positions = document.querySelectorAll("p");
+
+        let selected_chart = 1;
+
+        slider.addEventListener("input", () => {
+            const value = parseInt(slider.value);
+
+            // hide all charts and remove active class
+            charts.forEach(chart => {
+                chart.classList.remove("active");
+                chart.style.display = "none";
+            });
+
+            // show selected chart and add active class
+            charts[value - 1].classList.add("active");
+            charts[value - 1].style.display = "block";
+
+            // change selected chart
+            selected_chart = value;
+
+            var position = parseInt(slider.value) - 1;
+            for (var i = 0; i < positions.length; i++) {
+                if (i === position) {
+                    positions[i].style.display = "block";
+                } else {
+                    positions[i].style.display = "none";
+                }
+            }
+        });
+
+        const create_x_axis = (svg, x_values) => {
+            const xScale = d3.scaleLinear()
+                .domain([0, d3.max(x_values)])
+                .range([0, width - 50]); // assuming you have defined the height variable
+
+            // Define the x axis
+            var xAxis = d3.axisBottom(xScale)
+                .tickPadding(10)
+
+            // Append the x axis to the svg element
+            svg.append("g")
+                .attr("class", "x-axis")// assuming you have defined the height variable
+                .attr("transform", "translate(50, " + (height - 50) + ")")
+                .call(xAxis)
+
+            // Add x-axis label
+            svg.append("text")
+                .attr("x", width / 2)
+                .attr("y", height)
+                .attr("text-anchor", "middle")
+                .text("X Values");
+
+        }
+
+        const create_y_axis = (svg, y_values) => {
+            var yScale = d3.scaleLinear()
+                .domain([0, d3.max(y_values)])
+                .range([height - 100, 0]); // assuming you have defined the height variable
+
+            // Define the y axis
+            var yAxis = d3.axisLeft(yScale)
+                .tickPadding(10)
+
+            // Append the y axis to the svg element
+            svg.append("g")
+                .attr("class", "y-axis")// assuming you have defined the height variable
+                .attr("transform", "translate(50, 50)")
+                .call(yAxis)
+
+            // Add y-axis label
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -height / 2)
+                .attr("y", 10)
+                .attr("text-anchor", "middle")
+                .text("Y Values");
+        }
+
+        const create_scatter_plot = (svg, names, x_values, y_values, r_values) => {
+            // Create the scatter plot with x_values and y_values as the x and y coordinates and r_values as the radius of the circle
+
+            const xScale = d3.scaleLinear()
+                .domain([0, d3.max(x_values)])
+                .range([0, width - 50]); // assuming you have defined the height variable
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(y_values)])
+                .range([height - 100, 0]); // assuming you have defined the height variable
+
+            svg.selectAll("circle")
+                .data(x_values)
+                .enter()
+                .append("circle")
+                .attr("cx", function (d, i) {
+                    return xScale(x_values[i]);
+                })
+                .attr("cy", function (d, i) {
+                    return yScale(y_values[i]);
+                })
+                .attr("r", function (d, i) {
+                    return r_values[i];
+                })
+                .attr("fill", "red")
+                .attr("transform", "translate(50, 50)")
+                .on("mouseover", function (d, i) {
+                    d3.select(this)
+                        .attr("fill", "blue")
+                        .attr("r", r_values[i] * 2);
+                    svg.append("text")
+                        .attr("id", "tooltip")
+                        .attr("x", xScale(x_values[i]) + 20)
+                        .attr("y", yScale(y_values[i]) + 20)
+                        .attr("text-anchor", "middle")
+                        .text(`X: ${x_values[i]} Y: ${y_values[i]} R: ${r_values[i]} Name: ${names[i]}`)
+                })
+                .on("mouseout", function (d, i) {
+                    d3.select(this)
+                        .attr("fill", "red")
+                        .attr("r", r_values[i]);
+                    d3.select("#tooltip").remove();
+                });
+        }
+
+        const create_graph = (svg, names, x_values, y_values, r_values) => {
+
+            create_x_axis(svg, x_values);
+            create_y_axis(svg, y_values);
+
+            // Create the scatter plot with x_values and y_values as the x and y coordinates and r_values as the radius of the circle
+            create_scatter_plot(svg, names, x_values, y_values, r_values);
+        }
+
+        // Load the data from yearwise.csv
+        d3.csv("yearwise.csv").then(function (data) {
+            console.log(data);
+            names = data.map(function (d) {
+                return d.Name;
+            });
+
+            x_values_1 = data.map(function (d) {
+                return d.X2011;
+            });
+            y_values_1 = data.map(function (d) {
+                return d.Y2011;
+            });
+            r_values_1 = data.map(function (d) {
+                return d.R2011;
+            });
+
+            x_values_2 = data.map(function (d) {
+                return d.X2012;
+            });
+            y_values_2 = data.map(function (d) {
+                return d.Y2012;
+            });
+            r_values_2 = data.map(function (d) {
+                return d.R2012;
+            });
+
+            x_values_3 = data.map(function (d) {
+                return d.X2013;
+            });
+            y_values_3 = data.map(function (d) {
+                return d.Y2013;
+            });
+            r_values_3 = data.map(function (d) {
+                return d.R2013;
+            });
+
+            svg = d3.select("#chart1").select("svg");
+            create_graph(svg, names, x_values_1, y_values_1, r_values_1);
+            svg = d3.select("#chart2").select("svg");
+            create_graph(svg, names, x_values_2, y_values_2, r_values_2);
+            svg = d3.select("#chart3").select("svg");
+            create_graph(svg, names, x_values_3, y_values_3, r_values_3);
+        });
+    </script>
+    </body>
+
+</html>
